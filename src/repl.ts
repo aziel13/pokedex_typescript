@@ -1,35 +1,52 @@
-import * as process from "node:process";
+import { type State } from "./state.js";
+import {getCommands} from "./GetCommand.js";
 
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 
-const { createInterface } = require('node:readline');
+export function startREPL( state: State): void {
 
-const rl = createInterface({
-    input: process.stdin,  // Standard input stream (keyboard)
-    output: process.stdout, // Standard output stream (console)
-    prompt: "Pokedex >"
-});
+        state.readline.prompt();
 
-export function startREPL(): void {
+        state.readline.on("line", async (input) => {
+           const words = cleanInput(input);
+           if (words.length == 0) {
+               state.readline.prompt();
+               return;
+           }
 
-    rl.prompt();
-    rl.on('line', (input: string) => {
+           const commandName = words[0];
 
-        if (input.trim() === "") {
-            rl.prompt();
-        } else {
+           const commands = getCommands();
 
-            let clean: string[] = [];
+           if(!commands[commandName]) {
+               console.error(`${commandName} Command not found`);
 
-            clean = cleanInput (input);
+               state.readline.prompt();
+               return;
 
-            console.log(`Your command was: ${clean[0]}`);
-            rl.prompt();
-        }
+           }
 
-    });
+           commands[commandName].callback(state);
+
+           let output = state.output;
+
+            if(output != undefined){
+
+                if(output.length > 0 && output[0] == "exit")
+                {
+                    state.readline.close();
+                    return;
+                }
+            }
+
+            state.readline.prompt();
+
+
+
+        });
+
+    return ;
 }
+
 
 export function cleanInput(input: string): string[] {
 
@@ -49,3 +66,5 @@ export function cleanInput(input: string): string[] {
     return output;
 
 }
+
+
